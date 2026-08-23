@@ -24,6 +24,9 @@ export default function LoginButton() {
   const handleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "discord",
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      }
     });
     if (error) console.error("Login Error:", error.message);
   };
