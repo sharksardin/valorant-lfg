@@ -1,69 +1,78 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Search, PlusCircle } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import RiotLinker from "@/components/RiotLinker";
+import CreatePostModal from "@/components/CreatePostModal";
+import PostList from "@/components/PostList";
 
 export default function Home() {
+  const [session, setSession] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleOpenModal = () => {
+    if (!session) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    setIsModalOpen(true);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Google Ads Placeholder - Top */}
+      <div className="w-full h-24 bg-gray-800 flex items-center justify-center text-gray-500 mb-8 rounded border border-gray-700">
+        Google Ads (상단 배너)
+      </div>
+
+      <RiotLinker session={session} />
+
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">듀오/팀원 찾기</h1>
+          <p className="text-gray-400">나와 딱 맞는 발로란트 파티원을 찾아보세요.</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <button 
+          onClick={handleOpenModal}
+          className="bg-[var(--valo-red)] text-white px-5 py-3 rounded-lg font-bold hover:bg-red-600 transition-colors flex items-center gap-2 shadow-lg"
+        >
+          <PlusCircle size={20} />
+          구인글 작성
+        </button>
+      </div>
+
+      {/* Filters (MVP에서는 디자인만 유지) */}
+      <div className="bg-[#1a232c] p-4 rounded-lg mb-8 flex gap-4 border border-gray-800">
+        <select className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none focus:border-[var(--valo-red)]">
+          <option>모든 티어</option>
+          <option>Radiant ~ Ascendant</option>
+          <option>Diamond ~ Platinum</option>
+          <option>Gold ~ Iron</option>
+        </select>
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
+          <input 
+            type="text" 
+            placeholder="챔피언, 닉네임, 메모 검색..." 
+            className="w-full bg-gray-900 border border-gray-700 rounded pl-10 pr-4 py-2 text-white outline-none focus:border-[var(--valo-red)]"
+          />
         </div>
-      </main>
+      </div>
+
+      <PostList session={session} />
+
+      <CreatePostModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        session={session} 
+      />
     </div>
   );
 }
