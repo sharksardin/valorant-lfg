@@ -27,11 +27,6 @@ export default function Home() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Google Ads Placeholder - Top */}
-      <div className="w-full h-24 bg-gray-800 flex items-center justify-center text-gray-500 mb-8 rounded border border-gray-700">
-        Google Ads (상단 배너)
-      </div>
-
       <RiotLinker session={session} />
 
       <div className="flex justify-between items-center mb-6">
