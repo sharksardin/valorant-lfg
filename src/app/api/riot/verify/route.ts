@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   );
 
   try {
-    const { name, tag, userId, discordName, avatarUrl } = await request.json();
+    const { name, tag, userId, discordName, avatarUrl, tier } = await request.json();
 
     if (!name || !tag || !userId) {
       return NextResponse.json({ error: '닉네임과 태그를 모두 입력해주세요.' }, { status: 400 });
@@ -34,8 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '라이엇 계정을 찾을 수 없습니다. 닉네임과 태그를 다시 확인해주세요.' }, { status: 404 });
     }
 
-    // 공식 API로는 티어를 직접 가져오려면 복잡한 RSO 심사가 필요하므로, MVP 단계에서는 계정 존재 여부만 인증하고 티어는 기본값으로 둡니다.
-    const tier = 'Unranked (인증됨)';
+    const finalTier = tier || 'Unranked';
 
     // 2. Supabase profiles 테이블에 저장 (upsert)
     const { error: dbError } = await supabase
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
         discord_name: discordName,
         avatar_url: avatarUrl,
         riot_id: `${name}#${tag}`,
-        valorant_tier: tier,
+        valorant_tier: finalTier,
       });
 
     if (dbError) {
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `데이터베이스 저장 실패: ${dbError.message}` }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, tier });
+    return NextResponse.json({ success: true, tier: finalTier });
   } catch (error) {
     console.error('Verify Error:', error);
     return NextResponse.json({ error: '서버 에러가 발생했습니다.' }, { status: 500 });
