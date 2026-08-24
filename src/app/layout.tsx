@@ -3,6 +3,8 @@ import "./globals.css";
 import Link from "next/link";
 import { MessageSquare, Users } from "lucide-react";
 import LoginButton from "@/components/LoginButton";
+import GlobalNotification from "@/components/GlobalNotification";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Valorant Duo Finder",
@@ -16,7 +18,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="antialiased">
+      <body className="antialiased flex flex-col min-h-screen">
+        <GlobalNotification />
         <nav className="border-b border-gray-800 bg-[#111]">
           <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
@@ -29,9 +32,10 @@ export default function RootLayout({
             </div>
           </div>
         </nav>
-        <main className="min-h-screen">
+        <main className="flex-grow">
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   );
