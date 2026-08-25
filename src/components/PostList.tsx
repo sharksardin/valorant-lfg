@@ -167,6 +167,11 @@ export default function PostList({ session }: { session: any }) {
           </p>
           
           <div className="mt-6 flex flex-wrap justify-center gap-2 w-full">
+            {post.playstyles?.map((tag: string, idx: number) => (
+              <span key={`ps-${idx}`} className="bg-[var(--valo-red)]/20 text-[var(--valo-red)] px-4 py-1.5 rounded-full text-sm font-bold border border-[var(--valo-red)]/30">
+                {tag}
+              </span>
+            ))}
             <span className="bg-gray-800/50 text-gray-300 px-4 py-1.5 rounded-full text-sm font-medium border border-gray-700/50">
               {post.mic ? "🎙️ 마이크 O" : "🔇 마이크 X"}
             </span>
