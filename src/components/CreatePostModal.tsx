@@ -44,16 +44,19 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
     
     const agentArray = agents.split(",").map(s => s.trim()).filter(s => s !== "");
 
+    // 유저당 1개의 글만 유지 (upsert)
+    // 기존 글이 있으면 내용 갱신 + updated_at 갱신 (끌어올리기 효과)
     const { error } = await supabase
       .from("posts")
-      .insert({
+      .upsert({
         author_id: session.user.id,
         agents: agentArray,
         mic: mic,
         play_time: time,
         memo: memo,
-        playstyles: selectedTags
-      });
+        playstyles: selectedTags,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'author_id' }); // author_id를 기준으로 덮어쓰기
 
     setLoading(false);
     

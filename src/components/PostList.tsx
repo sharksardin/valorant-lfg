@@ -2,31 +2,48 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, MicOff, Trash2, X, MessageCircle, Flame } from "lucide-react";
+import { Trash2, MessageCircle, AlertTriangle, Ban, Flame } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function PostList({ session }: { session: any }) {
   const [posts, setPosts] = useState<any[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [blockedIds, setBlockedIds] = useState<string[]>([]);
   const router = useRouter();
 
   useEffect(() => {
-    fetchPosts();
+    if (session) {
+      fetchBlocksAndPosts();
+    } else {
+      fetchPosts([]);
+    }
 
     const channel = supabase
       .channel('public:posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
-        fetchPosts();
+        if (session) fetchBlocksAndPosts();
+        else fetchPosts([]);
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [session]);
 
-  const fetchPosts = async () => {
-    const { data, error } = await supabase
+  const fetchBlocksAndPosts = async () => {
+    // 1. 내가 차단한 유저 목록 가져오기
+    const { data: blocks } = await supabase
+      .from('blocks')
+      .select('blocked_id')
+      .eq('blocker_id', session.user.id);
+    
+    const bIds = blocks?.map(b => b.blocked_id) || [];
+    setBlockedIds(bIds);
+    fetchPosts(bIds);
+  };
+
+  const fetchPosts = async (bIds: string[]) => {
+    let query = supabase
       .from("posts")
       .select(`
         *,
@@ -37,12 +54,17 @@ export default function PostList({ session }: { session: any }) {
           valorant_tier
         )
       `)
+      .order("updated_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching posts:", error);
     } else {
-      setPosts(data || []);
+      // 2. 차단한 유저의 글 필터링
+      const filtered = data?.filter(p => !bIds.includes(p.author_id)) || [];
+      setPosts(filtered);
     }
   };
 
@@ -90,126 +112,128 @@ export default function PostList({ session }: { session: any }) {
     router.push(`/chat?id=${newChat.id}`);
   };
 
-  const handlePass = () => {
-    setCurrentIndex(prev => prev + 1);
+  const handleReport = async (reportedId: string) => {
+    if (!session) return alert("로그인이 필요합니다.");
+    const reason = prompt("신고 사유를 간단히 적어주세요 (욕설, 도배 등):");
+    if (!reason) return;
+
+    await supabase.from('reports').insert({
+      reporter_id: session.user.id,
+      reported_id: reportedId,
+      reason: reason
+    });
+    alert("신고가 접수되었습니다. 관리자가 검토 후 조치하겠습니다.");
+  };
+
+  const handleBlock = async (blockedId: string) => {
+    if (!session) return alert("로그인이 필요합니다.");
+    if (!confirm("이 유저를 차단하시겠습니까? 앞으로 이 유저의 글이 보이지 않습니다.")) return;
+
+    await supabase.from('blocks').insert({
+      blocker_id: session.user.id,
+      blocked_id: blockedId
+    });
+    
+    alert("차단되었습니다.");
+    fetchBlocksAndPosts(); // 리스트 갱신
   };
 
   if (posts.length === 0) {
     return (
       <div className="text-center text-gray-500 py-20 bg-[#1a232c] rounded-lg border border-gray-800">
-        아직 올라온 구인 글이 없습니다. 첫 번째 글을 작성해 보세요!
+        아직 올라온 구인 글이 없거나 모두 차단되었습니다. 첫 번째 글을 작성해 보세요!
       </div>
     );
   }
-
-  if (currentIndex >= posts.length) {
-    return (
-      <div className="text-center py-20 bg-[#1a232c] rounded-lg border border-gray-800 flex flex-col items-center justify-center">
-        <h3 className="text-2xl font-bold text-white mb-2">모든 듀오를 다 확인했습니다!</h3>
-        <p className="text-gray-400 mb-6">잠시 후 다시 방문하거나 새로운 글을 작성해보세요.</p>
-        <button onClick={() => setCurrentIndex(0)} className="bg-gray-800 text-white px-6 py-2 rounded hover:bg-gray-700 font-bold transition-colors">
-          처음부터 다시 보기
-        </button>
-      </div>
-    );
-  }
-
-  const post = posts[currentIndex];
-  const riotIdStr = post.profiles?.riot_id || "Unknown#0000";
-  const [riotName, riotTag] = riotIdStr.split("#");
-  const isMe = session?.user?.id === post.author_id;
 
   return (
-    <div className="flex flex-col items-center justify-center py-4">
-      {/* 틴더 스타일 매칭 카드 */}
-      <div className="bg-[#1a232c] w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-gray-800 transition-all duration-300 transform">
-        
-        {/* 상단 프로필 영역 (배경) */}
-        <div className="h-40 bg-gradient-to-b from-gray-800 to-[#1a232c] relative flex flex-col items-center justify-end pb-8">
-          {isMe && (
-            <button 
-              onClick={async () => {
-                if (!confirm("내 글을 삭제할까요?")) return;
-                await supabase.from("posts").delete().eq("id", post.id);
-                // 삭제 후 인덱스가 범위를 벗어나지 않도록 처리
-                if (currentIndex >= posts.length - 1 && currentIndex > 0) {
-                  setCurrentIndex(prev => prev - 1);
-                }
-              }}
-              className="absolute top-4 left-4 bg-red-500/20 text-red-400 p-2 rounded-full hover:bg-red-500/40 transition-colors"
-              title="내 글 삭제하기"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
+    <div className="space-y-4">
+      {posts.map(post => {
+        const riotIdStr = post.profiles?.riot_id || "Unknown#0000";
+        const [riotName, riotTag] = riotIdStr.split("#");
+        const isMe = session?.user?.id === post.author_id;
+        const timeAgo = Math.floor((new Date().getTime() - new Date(post.updated_at || post.created_at).getTime()) / 60000);
 
-          {/* 매너 온도 표시 (임시 UI) */}
-          <div className="absolute top-4 right-4 bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full font-bold text-xs flex items-center gap-1 border border-orange-500/30">
-            <Flame size={14} /> 매너 36.5°C
-          </div>
+        return (
+          <div key={post.id} className="bg-[#1a232c] border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors flex flex-col md:flex-row gap-6 items-center">
+            
+            {/* 왼쪽: 프로필 */}
+            <div className="flex flex-col items-center min-w-[120px]">
+              <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center font-bold text-xl text-white overflow-hidden border-2 border-gray-600 mb-2">
+                {post.profiles?.avatar_url ? (
+                  <img src={post.profiles.avatar_url} alt="profile" className="w-full h-full object-cover" />
+                ) : (
+                  post.profiles?.valorant_tier?.charAt(0) || "?"
+                )}
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-white leading-tight">{riotName}</p>
+                <p className="text-xs text-gray-500">#{riotTag}</p>
+                <p className="text-[var(--valo-red)] font-bold text-xs mt-1">{post.profiles?.valorant_tier || "Unranked"}</p>
+              </div>
+            </div>
 
-          <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center font-bold text-3xl text-white overflow-hidden border-4 border-[#1a232c] absolute -bottom-12 shadow-lg z-10">
-            {post.profiles?.avatar_url ? (
-              <img src={post.profiles.avatar_url} alt="profile" className="w-full h-full object-cover" />
-            ) : (
-              post.profiles?.valorant_tier?.charAt(0) || "?"
-            )}
-          </div>
-        </div>
-        
-        {/* 하단 상세 정보 영역 */}
-        <div className="pt-16 pb-8 px-6 text-center flex flex-col items-center">
-          <h3 className="text-2xl font-bold flex items-end gap-1 justify-center">
-            {riotName} <span className="text-gray-500 text-base font-normal">#{riotTag}</span>
-          </h3>
-          <p className="text-[var(--valo-red)] font-extrabold text-lg mt-1 tracking-wide uppercase">
-            {post.profiles?.valorant_tier || "Unranked"}
-          </p>
-          
-          <div className="mt-6 flex flex-wrap justify-center gap-2 w-full">
-            {post.playstyles?.map((tag: string, idx: number) => (
-              <span key={`ps-${idx}`} className="bg-[var(--valo-red)]/20 text-[var(--valo-red)] px-4 py-1.5 rounded-full text-sm font-bold border border-[var(--valo-red)]/30">
-                {tag}
-              </span>
-            ))}
-            <span className="bg-gray-800/50 text-gray-300 px-4 py-1.5 rounded-full text-sm font-medium border border-gray-700/50">
-              {post.mic ? "🎙️ 마이크 O" : "🔇 마이크 X"}
-            </span>
-            <span className="bg-gray-800/50 text-gray-300 px-4 py-1.5 rounded-full text-sm font-medium border border-gray-700/50">
-              ⏰ {post.play_time || "시간 무관"}
-            </span>
-            {post.agents?.map((agent: string, idx: number) => (
-              <span key={idx} className="bg-gray-800/50 text-gray-300 px-4 py-1.5 rounded-full text-sm font-medium border border-gray-700/50">
-                🎮 {agent}
-              </span>
-            ))}
-          </div>
-          
-          <div className="mt-8 bg-gray-900/50 w-full p-4 rounded-xl border border-gray-800/50 text-gray-300 text-sm min-h-[80px] flex items-center justify-center italic">
-            "{post.memo}"
-          </div>
-        </div>
-      </div>
-      
-      {/* 액션 버튼 영역 */}
-      <div className="flex gap-8 mt-10">
-        <button 
-          onClick={handlePass} 
-          className="w-16 h-16 rounded-full bg-[#1a232c] border-2 border-gray-700 text-gray-400 flex items-center justify-center hover:bg-gray-800 hover:text-white hover:border-gray-500 transition-all shadow-lg hover:scale-105 active:scale-95"
-        >
-          <X size={32} />
-        </button>
-        <button 
-          onClick={() => handleChat(post.author_id)} 
-          className="w-16 h-16 rounded-full bg-[var(--valo-red)] text-white flex items-center justify-center hover:bg-red-600 transition-all shadow-[0_0_20px_rgba(255,70,85,0.4)] hover:scale-105 active:scale-95"
-        >
-          <MessageCircle size={32} />
-        </button>
-      </div>
+            {/* 중앙: 상세 내용 */}
+            <div className="flex-1 w-full">
+              <div className="flex flex-wrap gap-2 mb-3">
+                {post.playstyles?.map((tag: string, idx: number) => (
+                  <span key={idx} className="bg-[var(--valo-red)]/20 text-[var(--valo-red)] px-2 py-1 rounded text-xs font-bold border border-[var(--valo-red)]/30">
+                    {tag}
+                  </span>
+                ))}
+                <span className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+                  {post.mic ? "🎙️ 마이크 O" : "🔇 마이크 X"}
+                </span>
+                <span className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+                  ⏰ {post.play_time || "시간 무관"}
+                </span>
+                {post.agents?.map((agent: string, idx: number) => (
+                  <span key={`ag-${idx}`} className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+                    🎮 {agent}
+                  </span>
+                ))}
+              </div>
+              <p className="text-gray-300 text-sm whitespace-pre-wrap">{post.memo}</p>
+              <div className="text-xs text-gray-600 mt-3 flex items-center gap-2">
+                <span>{timeAgo < 1 ? "방금 전" : `${timeAgo}분 전`}</span>
+              </div>
+            </div>
 
-      <p className="text-gray-600 text-sm mt-8">
-        {currentIndex + 1} / {posts.length} 명의 대기열
-      </p>
+            {/* 오른쪽: 액션 버튼 */}
+            <div className="flex md:flex-col gap-2 w-full md:w-auto">
+              {isMe ? (
+                <button 
+                  onClick={async () => {
+                    if (!confirm("내 글을 삭제할까요?")) return;
+                    await supabase.from("posts").delete().eq("id", post.id);
+                  }}
+                  className="flex-1 md:w-full bg-gray-800 text-red-400 py-2 px-4 rounded hover:bg-gray-700 text-sm font-bold flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={16} /> 삭제
+                </button>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => handleChat(post.author_id)} 
+                    className="flex-1 md:w-full bg-[var(--valo-red)] text-white py-2 px-6 rounded hover:bg-red-600 text-sm font-bold shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle size={16} /> 대화하기
+                  </button>
+                  <div className="flex gap-2 mt-auto">
+                    <button onClick={() => handleBlock(post.author_id)} className="flex-1 bg-gray-800 text-gray-400 py-1.5 px-2 rounded hover:bg-gray-700 hover:text-white text-xs flex items-center justify-center gap-1" title="차단하기">
+                      <Ban size={14} /> 차단
+                    </button>
+                    <button onClick={() => handleReport(post.author_id)} className="flex-1 bg-gray-800 text-gray-400 py-1.5 px-2 rounded hover:bg-gray-700 hover:text-red-400 text-xs flex items-center justify-center gap-1" title="신고하기">
+                      <AlertTriangle size={14} /> 신고
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+          </div>
+        );
+      })}
     </div>
   );
 }
