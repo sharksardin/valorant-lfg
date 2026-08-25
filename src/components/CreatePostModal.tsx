@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -16,6 +16,36 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
   const [memo, setMemo] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && session) {
+      const fetchMyPost = async () => {
+        const { data } = await supabase
+          .from('posts')
+          .select('*')
+          .eq('author_id', session.user.id)
+          .maybeSingle();
+
+        if (data) {
+          setAgents(data.agents?.join(", ") || "");
+          setMic(data.mic ?? true);
+          setTime(data.play_time || "");
+          setMemo(data.memo || "");
+          setSelectedTags(data.playstyles || []);
+          setIsEditing(true);
+        } else {
+          setAgents("");
+          setMic(true);
+          setTime("");
+          setMemo("");
+          setSelectedTags([]);
+          setIsEditing(false);
+        }
+      };
+      fetchMyPost();
+    }
+  }, [isOpen, session]);
 
   if (!isOpen) return null;
 
@@ -76,7 +106,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-[#1a232c] border border-gray-700 rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">듀오/팀원 구인 글 작성</h2>
+          <h2 className="text-xl font-bold">{isEditing ? "내 구인 글 수정/끌어올리기" : "듀오/팀원 구인 글 작성"}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={24}/></button>
         </div>
 
@@ -145,7 +175,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
             type="submit" disabled={loading}
             className="w-full bg-[var(--valo-red)] text-white py-3 rounded font-bold hover:bg-red-600 transition-colors disabled:opacity-50 mt-4"
           >
-            {loading ? "등록 중..." : "등록하기"}
+            {loading ? "처리 중..." : (isEditing ? "수정하고 끌어올리기" : "등록하기")}
           </button>
         </form>
       </div>
