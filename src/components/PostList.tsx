@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, MessageCircle, AlertTriangle, Ban, Flame } from "lucide-react";
+import { Trash2, MessageCircle, AlertTriangle, Ban, Flame, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 import { getTierColor } from "@/lib/utils";
@@ -170,7 +170,19 @@ export default function PostList({ session }: { session: any }) {
               </div>
               <div className="text-center">
                 <p className="font-bold text-white leading-tight">{riotName}</p>
-                <p className="text-xs text-gray-500">#{riotTag}</p>
+                <div className="text-xs text-gray-500 flex items-center justify-center gap-1 mt-0.5">
+                  #{riotTag}
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(riotIdStr);
+                      alert("아이디가 복사되었습니다!");
+                    }} 
+                    className="hover:text-white transition-colors" 
+                    title="라이엇 아이디 복사"
+                  >
+                    <Copy size={12} />
+                  </button>
+                </div>
                 <p className={`${getTierColor(post.profiles?.valorant_tier)} font-bold text-xs mt-1`}>{post.profiles?.valorant_tier || "Unranked"}</p>
               </div>
             </div>
@@ -178,6 +190,9 @@ export default function PostList({ session }: { session: any }) {
             {/* 중앙: 상세 내용 */}
             <div className="flex-1 w-full">
               <div className="flex flex-wrap gap-2 mb-3">
+                <span className="bg-gray-800 text-white border border-gray-600 px-2 py-1 rounded text-xs font-bold">
+                  🎮 {post.game_mode || "경쟁전"}
+                </span>
                 {post.playstyles?.map((tag: string, idx: number) => (
                   <span key={idx} className="bg-[var(--valo-red)]/20 text-[var(--valo-red)] px-2 py-1 rounded text-xs font-bold border border-[var(--valo-red)]/30">
                     {tag}

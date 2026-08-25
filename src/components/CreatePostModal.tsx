@@ -15,6 +15,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
   const [time, setTime] = useState("");
   const [memo, setMemo] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [gameMode, setGameMode] = useState("경쟁전");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -33,6 +34,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
           setTime(data.play_time || "");
           setMemo(data.memo || "");
           setSelectedTags(data.playstyles || []);
+          setGameMode(data.game_mode || "경쟁전");
           setIsEditing(true);
         } else {
           setAgents("");
@@ -40,6 +42,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
           setTime("");
           setMemo("");
           setSelectedTags([]);
+          setGameMode("경쟁전");
           setIsEditing(false);
         }
       };
@@ -85,6 +88,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
         play_time: time,
         memo: memo,
         playstyles: selectedTags,
+        game_mode: gameMode,
         updated_at: new Date().toISOString()
       }, { onConflict: 'author_id' }); // author_id를 기준으로 덮어쓰기
 
@@ -98,6 +102,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
       setMemo("");
       setMic(true);
       setSelectedTags([]);
+      setGameMode("경쟁전");
       onClose();
     }
   };
@@ -111,6 +116,26 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          <div>
+            <label className="block text-gray-400 text-sm mb-2">게임 모드</label>
+            <div className="flex flex-wrap gap-2">
+              {["경쟁전", "일반전", "신속플레이", "데스매치"].map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setGameMode(mode)}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors border ${
+                    gameMode === mode
+                      ? 'bg-[var(--valo-red)] text-white border-transparent' 
+                      : 'bg-gray-800/50 text-gray-300 border-gray-700 hover:bg-gray-700'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
           
           <div>
             <label className="block text-gray-400 text-sm mb-2">나의 성향 태그 <span className="text-[var(--valo-red)]">(최대 3개)</span></label>
