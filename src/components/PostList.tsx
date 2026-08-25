@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Trash2, MessageCircle, AlertTriangle, Ban, Flame } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
+import { getTierColor } from "@/lib/utils";
+
 export default function PostList({ session }: { session: any }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
@@ -169,7 +171,7 @@ export default function PostList({ session }: { session: any }) {
               <div className="text-center">
                 <p className="font-bold text-white leading-tight">{riotName}</p>
                 <p className="text-xs text-gray-500">#{riotTag}</p>
-                <p className="text-[var(--valo-red)] font-bold text-xs mt-1">{post.profiles?.valorant_tier || "Unranked"}</p>
+                <p className={`${getTierColor(post.profiles?.valorant_tier)} font-bold text-xs mt-1`}>{post.profiles?.valorant_tier || "Unranked"}</p>
               </div>
             </div>
 

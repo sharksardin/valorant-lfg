@@ -6,6 +6,8 @@ import LoginButton from "@/components/LoginButton";
 import GlobalNotification from "@/components/GlobalNotification";
 import Footer from "@/components/Footer";
 
+import NavChatBadge from "@/components/NavChatBadge";
+
 export const metadata: Metadata = {
   title: "Valorant Duo Finder",
   description: "Find your perfect Valorant duo and climb the ranks together.",
@@ -27,7 +29,7 @@ export default function RootLayout({
             </Link>
             <div className="flex items-center gap-6 text-sm font-medium">
               <Link href="/" className="hover:text-[var(--valo-red)] transition-colors flex items-center gap-1"><Users size={18}/> 파티 찾기</Link>
-              <Link href="/chat" className="hover:text-[var(--valo-red)] transition-colors flex items-center gap-1"><MessageSquare size={18}/> 내 채팅</Link>
+              <NavChatBadge />
               <LoginButton />
             </div>
           </div>

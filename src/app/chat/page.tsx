@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Send } from "lucide-react";
+import { Send, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { getTierColor } from "@/lib/utils";
 
 function ChatContent() {
   const searchParams = useSearchParams();
@@ -163,7 +164,7 @@ function ChatContent() {
                 </div>
                 <div className="flex flex-col flex-1">
                   <span className="font-bold text-white text-sm">{partner?.riot_id?.split("#")[0] || partner?.discord_name}</span>
-                  <span className="text-xs text-[var(--valo-red)]">{partner?.valorant_tier || "Unranked"}</span>
+                  <span className={`${getTierColor(partner?.valorant_tier)} text-xs font-bold`}>{partner?.valorant_tier || "Unranked"}</span>
                 </div>
                 {unreadCount > 0 && (
                   <div className="bg-[var(--valo-red)] text-white text-xs font-bold min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full">
@@ -181,6 +182,19 @@ function ChatContent() {
       <div className="flex-1 bg-[#1a232c] border border-gray-800 rounded-lg flex flex-col overflow-hidden relative">
         {activeChatId ? (
           <>
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-[#1a232c] z-10 shadow-sm">
+              <span className="font-bold text-white flex items-center gap-2">대화방</span>
+              <button 
+                onClick={async () => {
+                  if(!confirm("채팅방을 나가시겠습니까? 양쪽 모두에게서 대화 내용이 삭제됩니다.")) return;
+                  await supabase.from('chats').delete().eq('id', activeChatId);
+                  window.location.href = '/chat';
+                }}
+                className="text-gray-400 hover:text-red-400 text-xs font-bold flex items-center gap-1 transition-colors px-2 py-1 rounded border border-gray-700 hover:border-red-400/50"
+              >
+                <Trash2 size={14} /> 나가기
+              </button>
+            </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map(msg => {
                 const isMe = msg.sender_id === session.user.id;
