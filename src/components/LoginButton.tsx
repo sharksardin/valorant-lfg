@@ -11,7 +11,15 @@ export default function LoginButton() {
 
   useEffect(() => {
     const checkAdminStatus = async (userId: string) => {
-      const { data } = await supabase.from('profiles').select('is_admin').eq('id', userId).single();
+      const { data } = await supabase.from('profiles').select('is_admin, is_banned').eq('id', userId).single();
+      
+      if (data?.is_banned) {
+        alert("이용 약관 위반으로 영구 정지된 계정입니다.");
+        await supabase.auth.signOut();
+        window.location.href = "/";
+        return;
+      }
+      
       if (data?.is_admin) setIsAdmin(true);
     };
 
