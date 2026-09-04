@@ -29,6 +29,7 @@ export default function RootLayout({
             </Link>
             <div className="flex items-center gap-6 text-sm font-medium">
               <Link href="/" className="hover:text-[var(--valo-red)] transition-colors flex items-center gap-1"><Users size={18}/> 파티 찾기</Link>
+              <Link href="/news" className="hover:text-[var(--valo-red)] transition-colors text-gray-300">뉴스/가이드</Link>
               <NavChatBadge />
               <LoginButton />
             </div>
