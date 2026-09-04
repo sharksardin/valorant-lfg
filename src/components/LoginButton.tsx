@@ -1,22 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, LogOut, Settings } from "lucide-react";
+import { User, LogOut, Settings, ShieldAlert } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 
 export default function LoginButton() {
   const [session, setSession] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    const checkAdminStatus = async (userId: string) => {
+      const { data } = await supabase.from('profiles').select('is_admin').eq('id', userId).single();
+      if (data?.is_admin) setIsAdmin(true);
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) checkAdminStatus(session.user.id);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) {
+        checkAdminStatus(session.user.id);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -49,13 +61,20 @@ export default function LoginButton() {
           <span className="text-white font-medium text-sm hidden sm:inline">{user.user_metadata.full_name}</span>
           <Settings size={16} className="text-gray-400 hover:text-white ml-1" />
         </Link>
-        <button 
-          onClick={handleLogout}
-          className="text-gray-400 hover:text-white transition-colors"
-          title="로그아웃"
-        >
-          <LogOut size={18} />
-        </button>
+        <div className="flex items-center gap-3 border-l border-gray-700 pl-4">
+          {isAdmin && (
+            <Link href="/admin" className="text-gray-400 hover:text-[var(--valo-red)] transition-colors" title="어드민 페이지">
+              <ShieldAlert size={18} />
+            </Link>
+          )}
+          <button 
+            onClick={handleLogout}
+            className="text-gray-400 hover:text-white transition-colors"
+            title="로그아웃"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </div>
     );
   }
