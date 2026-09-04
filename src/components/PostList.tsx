@@ -10,6 +10,12 @@ import { getTierColor } from "@/lib/utils";
 export default function PostList({ session }: { session: any }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
+  
+  // 필터 상태
+  const [filterMode, setFilterMode] = useState<string>("전체");
+  const [filterMic, setFilterMic] = useState<boolean | null>(null); // null = 무관
+  const [filterRole, setFilterRole] = useState<string>("전체");
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -30,10 +36,9 @@ export default function PostList({ session }: { session: any }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session]);
+  }, [session, filterMode, filterMic, filterRole]); // 필터가 바뀔 때마다 재검색
 
   const fetchBlocksAndPosts = async () => {
-    // 1. 내가 차단한 유저 목록 가져오기
     const { data: blocks } = await supabase
       .from('blocks')
       .select('blocked_id')
@@ -56,16 +61,26 @@ export default function PostList({ session }: { session: any }) {
           valorant_tier,
           manner_score
         )
-      `)
-      .order("updated_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
+      `);
+
+    // 필터 적용
+    if (filterMode !== "전체") {
+      query = query.eq('game_mode', filterMode);
+    }
+    if (filterMic !== null) {
+      query = query.eq('mic', filterMic);
+    }
+    if (filterRole !== "전체") {
+      query = query.contains('agents', [filterRole]);
+    }
+
+    query = query.order("updated_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
 
     const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching posts:", error);
     } else {
-      // 2. 차단한 유저의 글 필터링
       const filtered = data?.filter(p => !bIds.includes(p.author_id)) || [];
       setPosts(filtered);
     }
@@ -156,17 +171,90 @@ export default function PostList({ session }: { session: any }) {
     fetchBlocksAndPosts(); // 리스트 갱신
   };
 
-  if (posts.length === 0) {
-    return (
-      <div className="text-center text-gray-500 py-20 bg-[#1a232c] rounded-lg border border-gray-800">
-        아직 올라온 구인 글이 없거나 모두 차단되었습니다. 첫 번째 글을 작성해 보세요!
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      {posts.map(post => {
+    <div className="space-y-6">
+      
+      {/* 🚀 상세 필터링 UI */}
+      <div className="bg-[#1a232c] border border-gray-800 rounded-xl p-4 md:p-6 shadow-sm">
+        <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+          🔍 맞춤 듀오 찾기
+        </h3>
+        <div className="space-y-4">
+          
+          {/* 게임 모드 필터 */}
+          <div>
+            <span className="text-gray-400 text-xs font-bold block mb-2">게임 모드</span>
+            <div className="flex flex-wrap gap-2">
+              {["전체", "경쟁전", "일반전", "신속플레이", "데스매치"].map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setFilterMode(mode)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                    filterMode === mode 
+                      ? 'bg-[var(--valo-red)] text-white border-transparent' 
+                      : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:text-white'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 마이크 필터 */}
+          <div>
+            <span className="text-gray-400 text-xs font-bold block mb-2">마이크 사용</span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: "무관", value: null }, 
+                { label: "마이크 필수", value: true }, 
+                { label: "마이크 X", value: false }
+              ].map(mic => (
+                <button
+                  key={mic.label}
+                  onClick={() => setFilterMic(mic.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                    filterMic === mic.value 
+                      ? 'bg-[var(--valo-red)] text-white border-transparent' 
+                      : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:text-white'
+                  }`}
+                >
+                  {mic.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 역할군 필터 */}
+          <div>
+            <span className="text-gray-400 text-xs font-bold block mb-2">필요한 역할군</span>
+            <div className="flex flex-wrap gap-2">
+              {["전체", "타격대", "척후대", "감시자", "전략가", "올라운더"].map(role => (
+                <button
+                  key={role}
+                  onClick={() => setFilterRole(role)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                    filterRole === role 
+                      ? 'bg-[var(--valo-red)] text-white border-transparent' 
+                      : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:text-white'
+                  }`}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {posts.length === 0 ? (
+          <div className="text-center text-gray-500 py-20 bg-[#1a232c] rounded-lg border border-gray-800">
+            조건에 맞는 구인 글이 없습니다.
+          </div>
+        ) : (
+          posts.map(post => {
         const riotIdStr = post.profiles?.riot_id || "Unknown#0000";
         const [riotName, riotTag] = riotIdStr.split("#");
         const isMe = session?.user?.id === post.author_id;

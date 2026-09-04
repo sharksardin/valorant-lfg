@@ -10,9 +10,9 @@ const AVAILABLE_TAGS = [
 ];
 
 export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: boolean, onClose: () => void, session: any }) {
-  const [agents, setAgents] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [mic, setMic] = useState(true);
-  const [time, setTime] = useState("");
+  const [time, setTime] = useState("저녁");
   const [memo, setMemo] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [gameMode, setGameMode] = useState("경쟁전");
@@ -29,17 +29,17 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
           .maybeSingle();
 
         if (data) {
-          setAgents(data.agents?.join(", ") || "");
+          setSelectedRoles(data.agents || []);
           setMic(data.mic ?? true);
-          setTime(data.play_time || "");
+          setTime(data.play_time || "저녁");
           setMemo(data.memo || "");
           setSelectedTags(data.playstyles || []);
           setGameMode(data.game_mode || "경쟁전");
           setIsEditing(true);
         } else {
-          setAgents("");
+          setSelectedRoles([]);
           setMic(true);
-          setTime("");
+          setTime("저녁");
           setMemo("");
           setSelectedTags([]);
           setGameMode("경쟁전");
@@ -74,31 +74,34 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
       setLoading(false);
       return;
     }
-    
-    const agentArray = agents.split(",").map(s => s.trim()).filter(s => s !== "");
+
+    if (selectedRoles.length === 0) {
+      alert("선호 역할군을 최소 1개 이상 선택해주세요.");
+      setLoading(false);
+      return;
+    }
 
     // 유저당 1개의 글만 유지 (upsert)
-    // 기존 글이 있으면 내용 갱신 + updated_at 갱신 (끌어올리기 효과)
     const { error } = await supabase
       .from("posts")
       .upsert({
         author_id: session.user.id,
-        agents: agentArray,
+        agents: selectedRoles, // DB 호환성을 위해 agents 컬럼 재사용
         mic: mic,
         play_time: time,
         memo: memo,
         playstyles: selectedTags,
         game_mode: gameMode,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'author_id' }); // author_id를 기준으로 덮어쓰기
+      }, { onConflict: 'author_id' });
 
     setLoading(false);
     
     if (error) {
       alert("글 작성 실패: " + error.message);
     } else {
-      setAgents("");
-      setTime("");
+      setSelectedRoles([]);
+      setTime("저녁");
       setMemo("");
       setMic(true);
       setSelectedTags([]);
@@ -161,21 +164,49 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
           </div>
 
           <div>
-            <label className="block text-gray-400 text-sm mb-1">선호 요원 (쉼표로 구분)</label>
-            <input 
-              required type="text" placeholder="예: 제트, 레이나, 오멘" 
-              className="w-full bg-gray-900 border border-gray-700 rounded px-4 py-2 text-white outline-none focus:border-[var(--valo-red)]"
-              value={agents} onChange={e => setAgents(e.target.value)}
-            />
+            <label className="block text-gray-400 text-sm mb-2">선호 역할군 <span className="text-[var(--valo-red)]">(다중 선택 가능)</span></label>
+            <div className="flex flex-wrap gap-2">
+              {["타격대", "척후대", "감시자", "전략가", "올라운더"].map(role => {
+                const isSelected = selectedRoles.includes(role);
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) setSelectedRoles(prev => prev.filter(r => r !== role));
+                      else setSelectedRoles(prev => [...prev, role]);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                      isSelected 
+                        ? 'bg-[var(--valo-red)] text-white border-transparent' 
+                        : 'bg-gray-800/50 text-gray-300 border-gray-700 hover:bg-gray-700'
+                    }`}
+                  >
+                    {role}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           
           <div>
-            <label className="block text-gray-400 text-sm mb-1">주 플레이 시간대</label>
-            <input 
-              required type="text" placeholder="예: 평일 저녁 8시~12시" 
-              className="w-full bg-gray-900 border border-gray-700 rounded px-4 py-2 text-white outline-none focus:border-[var(--valo-red)]"
-              value={time} onChange={e => setTime(e.target.value)}
-            />
+            <label className="block text-gray-400 text-sm mb-2">주 플레이 시간대</label>
+            <div className="flex flex-wrap gap-2">
+              {["새벽", "오전", "오후", "저녁", "심야", "주말", "시간 무관"].map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTime(t)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                    time === t
+                      ? 'bg-[var(--valo-red)] text-white border-transparent' 
+                      : 'bg-gray-800/50 text-gray-300 border-gray-700 hover:bg-gray-700'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
