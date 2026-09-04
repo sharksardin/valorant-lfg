@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getTierColor } from "@/lib/utils";
 
@@ -195,16 +195,48 @@ function ChatContent() {
           <>
             <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-[#1a232c] z-10 shadow-sm">
               <span className="font-bold text-white flex items-center gap-2">대화방</span>
-              <button 
-                onClick={async () => {
-                  if(!confirm("채팅방을 나가시겠습니까? 양쪽 모두에게서 대화 내용이 삭제됩니다.")) return;
-                  await supabase.from('chats').delete().eq('id', activeChatId);
-                  window.location.href = '/chat';
-                }}
-                className="text-gray-400 hover:text-red-400 text-xs font-bold flex items-center gap-1 transition-colors px-2 py-1 rounded border border-gray-700 hover:border-red-400/50"
-              >
-                <Trash2 size={14} /> 나가기
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={async () => {
+                    const reason = prompt("신고 사유를 입력해주세요.\n(최근 대화 내용 5개가 관리자에게 자동으로 함께 전송됩니다.)");
+                    if (!reason) return;
+
+                    // 최근 5개 메시지 추출해서 첨부하기
+                    const recentMsgs = messages.slice(-5).map(m => {
+                      const speaker = m.sender_id === session.user.id ? "나" : "상대방";
+                      return `${speaker}: ${m.content}`;
+                    }).join('\n');
+
+                    const partnerId = chats.find(c => c.id === activeChatId)?.user1_id === session.user.id 
+                      ? chats.find(c => c.id === activeChatId)?.user2_id 
+                      : chats.find(c => c.id === activeChatId)?.user1_id;
+
+                    const fullReason = `[채팅 신고] ${reason}\n\n[최근 대화 내용]\n${recentMsgs}`;
+
+                    await supabase.from('reports').insert({
+                      reporter_id: session.user.id,
+                      reported_id: partnerId,
+                      reason: fullReason
+                    });
+                    
+                    alert("신고가 접수되었습니다. 관리자가 대화 내용을 검토 후 조치하겠습니다.");
+                  }}
+                  className="text-gray-400 hover:text-orange-400 text-xs font-bold flex items-center gap-1 transition-colors px-2 py-1 rounded border border-gray-700 hover:border-orange-400/50"
+                >
+                  <AlertTriangle size={14} /> 신고
+                </button>
+                
+                <button 
+                  onClick={async () => {
+                    if(!confirm("채팅방을 나가시겠습니까? 양쪽 모두에게서 대화 내용이 삭제됩니다.")) return;
+                    await supabase.from('chats').delete().eq('id', activeChatId);
+                    window.location.href = '/chat';
+                  }}
+                  className="text-gray-400 hover:text-red-400 text-xs font-bold flex items-center gap-1 transition-colors px-2 py-1 rounded border border-gray-700 hover:border-red-400/50"
+                >
+                  <Trash2 size={14} /> 나가기
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map(msg => {
