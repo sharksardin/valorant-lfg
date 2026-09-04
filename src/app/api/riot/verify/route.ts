@@ -39,32 +39,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '닉네임과 태그를 모두 입력해주세요.' }, { status: 400 });
     }
 
-    // 3. Henrik API를 통해 계정 존재 여부 및 실제 티어(랭크) 확인
-    const henrikKey = process.env.HENRIK_API_KEY;
-    if (!henrikKey) {
-      return NextResponse.json({ error: 'HENRIK_API_KEY가 설정되지 않았습니다.' }, { status: 500 });
-    }
-
-    const headers = { 'Authorization': henrikKey };
-
-    let region = '';
-    try {
-      const accountRes = await fetch(`https://api.henrikdev.xyz/valorant/v1/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, { headers });
-      if (!accountRes.ok) {
-        const errText = await accountRes.text();
-        return NextResponse.json({ error: `Henrik API 에러 (${accountRes.status}): ${errText}` }, { status: 404 });
+    // 3. 라이엇 공식 API로 계정 존재 여부 확실하게 1차 검증
+    const riotToken = process.env.RIOT_API_KEY;
+    if (riotToken) {
+      const riotRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, {
+        headers: { 'X-Riot-Token': riotToken }
+      });
+      if (!riotRes.ok) {
+        return NextResponse.json({ error: '라이엇 공식 서버에 존재하지 않는 계정입니다. 닉네임과 태그를 확인해주세요.' }, { status: 404 });
       }
-      const accountData = await accountRes.json();
-      region = accountData.data?.region;
-    } catch (e: any) {
-      return NextResponse.json({ error: `Henrik Account API 에러: ${e.message}` }, { status: 500 });
     }
 
-    // 3-2. MMR (랭크) 정보 가져오기
+    // 4. Henrik API를 통해 실제 티어(랭크) 긁어오기 시도
     let finalTier = 'Unranked';
-    if (region) {
+    const henrikKey = process.env.HENRIK_API_KEY;
+    
+    if (henrikKey) {
+      const headers = { 'Authorization': henrikKey };
       try {
-        const mmrRes = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, { headers });
+        // 한국 서버(kr) 기준으로 MMR 조회 시도
+        const mmrRes = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr/kr/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, { headers });
         if (mmrRes.ok) {
           const mmrData = await mmrRes.json();
           if (mmrData.data && mmrData.data.currenttierpatched) {
@@ -72,7 +66,7 @@ export async function POST(request: Request) {
           }
         }
       } catch (e: any) {
-        console.error("MMR API Error:", e);
+        console.error("Henrik MMR API Error:", e.message);
       }
     }
 
