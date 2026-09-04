@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, MessageCircle, AlertTriangle, Ban, Flame, Copy } from "lucide-react";
+import { Trash2, MessageCircle, AlertTriangle, Ban, Flame, Copy, ArrowUp, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 import { getTierColor } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { getTierColor } from "@/lib/utils";
 export default function PostList({ session }: { session: any }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
+  const [newPostsAvailable, setNewPostsAvailable] = useState(false);
   
   // 필터 상태
   const [filterMode, setFilterMode] = useState<string>("전체");
@@ -28,8 +29,15 @@ export default function PostList({ session }: { session: any }) {
     const channel = supabase
       .channel('public:posts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
-        if (session) fetchBlocksAndPosts();
-        else fetchPosts([]);
+        if (payload.eventType === 'DELETE') {
+          if (session) fetchBlocksAndPosts(); else fetchPosts([]);
+        } else if (payload.new && session && payload.new.author_id === session.user.id) {
+          // 내가 쓴 글이 업데이트(끌어올리기 등) 되거나 생성된 경우 즉시 새로고침
+          fetchBlocksAndPosts();
+        } else {
+          // 남이 쓴 글이면 버튼 띄우기
+          setNewPostsAvailable(true);
+        }
       })
       .subscribe();
 
@@ -249,6 +257,20 @@ export default function PostList({ session }: { session: any }) {
       </div>
 
       <div className="space-y-4">
+        {newPostsAvailable && (
+          <button 
+            onClick={() => {
+              if (session) fetchBlocksAndPosts();
+              else fetchPosts([]);
+              setNewPostsAvailable(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="w-full bg-[var(--valo-red)] hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all animate-bounce"
+          >
+            <ArrowUp size={18} /> 새로운 구인 글이 올라왔어요! 클릭해서 확인하기
+          </button>
+        )}
+
         {posts.length === 0 ? (
           <div className="text-center text-gray-500 py-20 bg-[#1a232c] rounded-lg border border-gray-800">
             조건에 맞는 구인 글이 없습니다.
@@ -332,15 +354,35 @@ export default function PostList({ session }: { session: any }) {
             {/* 오른쪽: 액션 버튼 */}
             <div className="flex md:flex-col gap-2 w-full md:w-auto">
               {isMe ? (
-                <button 
-                  onClick={async () => {
-                    if (!confirm("내 글을 삭제할까요?")) return;
-                    await supabase.from("posts").delete().eq("id", post.id);
-                  }}
-                  className="flex-1 md:w-full bg-gray-800 text-red-400 py-2 px-4 rounded hover:bg-gray-700 text-sm font-bold flex items-center justify-center gap-2"
-                >
-                  <Trash2 size={16} /> 삭제
-                </button>
+                <>
+                  <button 
+                    onClick={async () => {
+                      if (timeAgo < 15) {
+                        alert(`끌어올리기는 15분마다 가능합니다. (${15 - timeAgo}분 남음)`);
+                        return;
+                      }
+                      await supabase.from("posts").update({ updated_at: new Date().toISOString() }).eq("id", post.id);
+                      alert("글이 상단으로 끌어올려졌습니다!");
+                    }}
+                    className={`flex-1 md:w-full py-2 px-4 rounded text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                      timeAgo >= 15 
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' 
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    }`}
+                    title={timeAgo >= 15 ? "내 글을 맨 위로 올리기" : "15분마다 가능합니다"}
+                  >
+                    <RefreshCw size={16} className={timeAgo >= 15 ? "" : "opacity-50"} /> 끌어올리기
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      if (!confirm("내 글을 삭제할까요?")) return;
+                      await supabase.from("posts").delete().eq("id", post.id);
+                    }}
+                    className="flex-1 md:w-full bg-gray-800 text-red-400 py-2 px-4 rounded hover:bg-gray-700 text-sm font-bold flex items-center justify-center gap-2"
+                  >
+                    <Trash2 size={16} /> 삭제
+                  </button>
+                </>
               ) : (
                 <>
                   <button 
