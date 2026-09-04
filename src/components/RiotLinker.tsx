@@ -92,7 +92,7 @@ export default function RiotLinker({ session }: { session: any }) {
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 items-end">
             <button 
               onClick={handleLink}
               disabled={loading}
@@ -100,6 +100,7 @@ export default function RiotLinker({ session }: { session: any }) {
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> {loading ? "가져오는 중..." : "전적/랭크 갱신"}
             </button>
+            {error && <div className="text-red-400 flex items-center gap-1 text-sm mt-1"><AlertCircle size={14}/> {error}</div>}
           </div>
         </div>
       ) : (
