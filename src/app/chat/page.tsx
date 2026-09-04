@@ -136,7 +136,10 @@ function ChatContent() {
       is_read: false // 초기 상태는 안읽음
     });
 
-    if (error) console.error("Message send error:", error);
+    if (error) {
+      console.error("Message send error:", error);
+      alert("메시지 전송에 실패했습니다. (너무 빠르게 보내고 있거나 권한이 없습니다.)");
+    }
   };
 
   if (!session) return <div className="text-center py-20 text-gray-400">로그인이 필요합니다.</div>;
