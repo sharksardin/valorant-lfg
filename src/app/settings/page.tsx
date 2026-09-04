@@ -20,23 +20,35 @@ export default function SettingsPage() {
   }, []);
 
   const fetchBlocks = async (userId: string) => {
-    // 차단 목록과 상대방의 프로필 정보를 함께 조인해서 가져옵니다.
-    const { data, error } = await supabase
+    // 1. 차단 목록 먼저 가져오기 (외래키 이름 충돌을 피하기 위해 분리해서 조회)
+    const { data: blocksData, error: blocksError } = await supabase
       .from('blocks')
-      .select(`
-        id,
-        blocked_id,
-        created_at,
-        profiles!blocks_blocked_id_fkey (
-          riot_id,
-          avatar_url
-        )
-      `)
+      .select('*')
       .eq('blocker_id', userId)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setBlocks(data);
+    if (blocksError) {
+      console.error("Fetch blocks error:", blocksError);
+      return;
+    }
+
+    if (blocksData && blocksData.length > 0) {
+      // 2. 차단된 유저들의 프로필 정보 가져오기
+      const blockedIds = blocksData.map(b => b.blocked_id);
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, riot_id, avatar_url')
+        .in('id', blockedIds);
+
+      // 3. 두 데이터 병합하기
+      const merged = blocksData.map(block => ({
+        ...block,
+        profiles: profilesData?.find(p => p.id === block.blocked_id) || null
+      }));
+      
+      setBlocks(merged);
+    } else {
+      setBlocks([]);
     }
   };
 
