@@ -129,12 +129,17 @@ export default function PostList({ session }: { session: any }) {
     const reason = prompt("신고 사유를 간단히 적어주세요 (욕설, 도배 등):");
     if (!reason) return;
 
-    await supabase.from('reports').insert({
+    const { error } = await supabase.from('reports').insert({
       reporter_id: session.user.id,
       reported_id: reportedId,
       reason: reason
     });
-    alert("신고가 접수되었습니다. 관리자가 검토 후 조치하겠습니다.");
+    
+    if (error) {
+      alert("신고 접수 중 에러가 발생했습니다: " + error.message);
+    } else {
+      alert("신고가 접수되었습니다. 관리자가 검토 후 조치하겠습니다.");
+    }
   };
 
   const handleBlock = async (blockedId: string) => {

@@ -213,13 +213,17 @@ function ChatContent() {
 
                     const fullReason = `[채팅 신고] ${reason}\n\n[최근 대화 내용]\n${recentMsgs}`;
 
-                    await supabase.from('reports').insert({
+                    const { error } = await supabase.from('reports').insert({
                       reporter_id: session.user.id,
                       reported_id: partnerId,
                       reason: fullReason
                     });
                     
-                    alert("신고가 접수되었습니다. 관리자가 대화 내용을 검토 후 조치하겠습니다.");
+                    if (error) {
+                      alert("신고 접수 중 에러가 발생했습니다: " + error.message);
+                    } else {
+                      alert("신고가 접수되었습니다. 관리자가 대화 내용을 검토 후 조치하겠습니다.");
+                    }
                   }}
                   className="text-gray-400 hover:text-orange-400 text-xs font-bold flex items-center gap-1 transition-colors px-2 py-1 rounded border border-gray-700 hover:border-orange-400/50"
                 >
