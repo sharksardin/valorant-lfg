@@ -123,6 +123,7 @@ function ChatContent() {
   };
 
   const [isSending, setIsSending] = useState(false);
+  const [ratingModalData, setRatingModalData] = useState<{isOpen: boolean, partnerId: string | null}>({ isOpen: false, partnerId: null });
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,20 +228,8 @@ function ChatContent() {
                           return;
                         }
 
-                        const isGood = confirm("이 유저와의 게임(대화)이 즐거우셨나요?\n[확인] 좋았어요 (+0.5도)\n[취소] 별로예요 (-0.5도)\n\n※ 평가는 한 번만 가능하며 취소할 수 없습니다.");
-                        const score = isGood ? 0.5 : -0.5;
-                        
-                        const { error } = await supabase.from('user_ratings').insert({
-                          rater_id: session.user.id,
-                          rated_id: partnerId,
-                          score: score
-                        });
-                        
-                        if (error) {
-                          alert("평가 중 에러가 발생했습니다: " + error.message);
-                        } else {
-                          alert("소중한 평가가 반영되었습니다!");
-                        }
+                        // 모달 띄우기
+                        setRatingModalData({ isOpen: true, partnerId });
                       }}
                       className={`text-xs font-bold flex items-center gap-1 transition-colors px-2 py-1 rounded border ${
                         canRate 
@@ -342,11 +331,69 @@ function ChatContent() {
             </form>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            좌측에서 채팅방을 선택하거나, 파티 찾기에서 대화를 시작해보세요.
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-[#1a232c] rounded-r-xl border border-gray-800">
+            <MessageCircle size={48} className="mb-4 opacity-50" />
+            <p className="font-bold text-lg text-gray-400 mb-2">대화방을 선택해주세요</p>
+            <p className="text-sm">매너 있는 채팅 문화를 만들어갑시다.</p>
           </div>
         )}
       </div>
+
+      {/* 매너 평가 모달 */}
+      {ratingModalData.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#1a232c] border border-gray-700 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <h3 className="text-xl font-bold text-white mb-2">매너 평가하기</h3>
+              <p className="text-sm text-gray-400 mb-6">
+                이 유저와의 게임(대화)이 어떠셨나요?<br/>
+                <span className="text-xs text-[var(--valo-red)]">※ 평가는 평생 한 번만 가능하며 수정/취소할 수 없습니다.</span>
+              </p>
+              <div className="flex gap-3 justify-center mb-6">
+                <button 
+                  onClick={async () => {
+                    const { error } = await supabase.from('user_ratings').insert({
+                      rater_id: session.user.id,
+                      rated_id: ratingModalData.partnerId,
+                      score: 0.5
+                    });
+                    if (error) alert("평가 중 에러: " + error.message);
+                    else alert("매너 온도가 +0.5도 올라갔습니다!");
+                    setRatingModalData({ isOpen: false, partnerId: null });
+                  }}
+                  className="flex-1 bg-gray-800 hover:bg-green-900/50 border border-gray-700 hover:border-green-500 text-white rounded-xl py-4 flex flex-col items-center gap-2 transition-all group"
+                >
+                  <ThumbsUp size={24} className="text-gray-400 group-hover:text-green-400 transition-colors" />
+                  <span className="font-bold group-hover:text-green-400 transition-colors">좋았어요</span>
+                </button>
+                <button 
+                  onClick={async () => {
+                    const { error } = await supabase.from('user_ratings').insert({
+                      rater_id: session.user.id,
+                      rated_id: ratingModalData.partnerId,
+                      score: -0.5
+                    });
+                    if (error) alert("평가 중 에러: " + error.message);
+                    else alert("매너 온도가 -0.5도 내려갔습니다.");
+                    setRatingModalData({ isOpen: false, partnerId: null });
+                  }}
+                  className="flex-1 bg-gray-800 hover:bg-red-900/50 border border-gray-700 hover:border-red-500 text-white rounded-xl py-4 flex flex-col items-center gap-2 transition-all group"
+                >
+                  <ThumbsDown size={24} className="text-gray-400 group-hover:text-red-400 transition-colors" />
+                  <span className="font-bold group-hover:text-red-400 transition-colors">별로예요</span>
+                </button>
+              </div>
+              <button 
+                onClick={() => setRatingModalData({ isOpen: false, partnerId: null })}
+                className="w-full py-2 text-gray-500 hover:text-white font-medium transition-colors"
+              >
+                다음에 할게요 (닫기)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
