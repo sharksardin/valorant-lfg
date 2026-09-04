@@ -3,44 +3,59 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('Authorization');
-  const supabase = createClient(
+  if (!authHeader) {
+    return NextResponse.json({ error: '인증 토큰이 없습니다.' }, { status: 401 });
+  }
+
+  // 1. 토큰 검증용 클라이언트 (유저 확인용)
+  const supabaseAuth = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: authHeader || '' } } }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // 2. 관리자용 클라이언트 (RLS 무시하고 DB 강제 업데이트용)
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY! // 반드시 환경변수에 추가해야 함
   );
 
   try {
-    const { name, tag, userId, discordName, avatarUrl, tier } = await request.json();
+    const token = authHeader.replace('Bearer ', '');
+    // 보안 핵심: 클라이언트가 보낸 userId를 믿지 않고, 토큰을 해독해서 진짜 유저 ID를 알아냅니다.
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: '유효하지 않은 인증입니다.' }, { status: 401 });
+    }
 
-    if (!name || !tag || !userId) {
+    const trueUserId = user.id;
+    const { name, tag, discordName, avatarUrl, tier } = await request.json();
+
+    if (!name || !tag) {
       return NextResponse.json({ error: '닉네임과 태그를 모두 입력해주세요.' }, { status: 400 });
     }
 
-    // 1. 공식 Riot API를 통해 계정 존재 여부 확인 (PUUID 조회)
+    // 3. 공식 Riot API를 통해 계정 존재 여부 확인
     const riotToken = process.env.RIOT_API_KEY;
     if (!riotToken) {
       return NextResponse.json({ error: 'RIOT_API_KEY가 설정되지 않았습니다.' }, { status: 500 });
     }
 
     const res = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, {
-      headers: {
-        'X-Riot-Token': riotToken
-      }
+      headers: { 'X-Riot-Token': riotToken }
     });
     
     if (!res.ok) {
-      const data = await res.json();
-      console.error('Riot API Error:', res.status, data);
       return NextResponse.json({ error: '라이엇 계정을 찾을 수 없습니다. 닉네임과 태그를 다시 확인해주세요.' }, { status: 404 });
     }
 
     const finalTier = tier || 'Unranked';
 
-    // 2. Supabase profiles 테이블에 저장 (upsert)
-    const { error: dbError } = await supabase
+    // 4. Supabase profiles 테이블에 저장 (관리자 권한으로 강제 쓰기)
+    const { error: dbError } = await supabaseAdmin
       .from('profiles')
       .upsert({
-        id: userId,
+        id: trueUserId, // 검증된 유저 ID만 사용!
         discord_name: discordName,
         avatar_url: avatarUrl,
         riot_id: `${name}#${tag}`,
