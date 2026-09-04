@@ -64,7 +64,8 @@ export default function SettingsPage() {
       alert("차단이 해제되었습니다.");
       setBlocks(blocks.filter(b => b.id !== blockId));
     } else {
-      alert("차단 해제 중 오류가 발생했습니다.");
+      console.error("Unblock Error:", error);
+      alert(`차단 해제 중 오류가 발생했습니다: ${error.message}`);
     }
   };
 
