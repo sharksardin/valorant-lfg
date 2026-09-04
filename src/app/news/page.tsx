@@ -30,18 +30,22 @@ export default function NewsPage() {
     }
   ];
 
+  const [errorMsg, setErrorMsg] = useState("");
+
   useEffect(() => {
-    // 헨릭데브 API를 통해 한국 공식 발로란트 뉴스/패치노트를 실시간으로 가져옴
     const fetchOfficialNews = async () => {
       try {
-        const res = await fetch("https://api.henrikdev.xyz/valorant/v1/website/ko-kr");
+        const res = await fetch("/api/news");
         const data = await res.json();
-        if (data.status === 200) {
-          // 최신 6개만 가져오기
+        
+        if (res.ok && data.status === 200) {
           setOfficialNews(data.data.slice(0, 6));
+        } else {
+          setErrorMsg(data.error || "뉴스를 불러오는 데 실패했습니다.");
         }
       } catch (error) {
         console.error("Failed to fetch official news:", error);
+        setErrorMsg("API 서버와 통신할 수 없습니다.");
       }
       setLoading(false);
     };
@@ -89,6 +93,12 @@ export default function NewsPage() {
         {loading ? (
           <div className="flex justify-center items-center py-20 text-gray-500">
             <div className="animate-pulse flex items-center gap-2">뉴스를 불러오는 중...</div>
+          </div>
+        ) : errorMsg ? (
+          <div className="bg-[#1a232c] border border-gray-800 rounded-xl p-10 text-center text-gray-500">
+            <p className="text-[var(--valo-red)] font-bold mb-2">API 에러 발생</p>
+            <p>{errorMsg}</p>
+            <p className="text-xs mt-4 opacity-50">.env.local 파일에 HENRIK_API_KEY를 설정했는지 확인해주세요.</p>
           </div>
         ) : officialNews.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
