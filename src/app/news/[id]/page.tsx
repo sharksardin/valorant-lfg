@@ -91,8 +91,9 @@ const articleData: Record<string, { title: string, date: string, content: string
   }
 };
 
-export default function ArticleDetail({ params }: { params: { id: string } }) {
-  const article = articleData[params.id];
+export default async function ArticleDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const article = articleData[id];
 
   if (!article) {
     return notFound();
