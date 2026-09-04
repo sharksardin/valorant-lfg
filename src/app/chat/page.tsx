@@ -122,10 +122,13 @@ function ChatContent() {
     }
   };
 
+  const [isSending, setIsSending] = useState(false);
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChatId || !session) return;
+    if (!newMessage.trim() || !activeChatId || !session || isSending) return;
     
+    setIsSending(true);
     const content = newMessage;
     setNewMessage(""); 
 
@@ -133,13 +136,18 @@ function ChatContent() {
       chat_id: activeChatId,
       sender_id: session.user.id,
       content: content,
-      is_read: false // 초기 상태는 안읽음
+      is_read: false
     });
 
     if (error) {
       console.error("Message send error:", error);
       alert("메시지 전송에 실패했습니다. (너무 빠르게 보내고 있거나 권한이 없습니다.)");
     }
+    
+    // 약간의 쿨타임(0.5초) 후 다시 전송 가능하게 함 (프론트엔드 도배 방어)
+    setTimeout(() => {
+      setIsSending(false);
+    }, 500);
   };
 
   if (!session) return <div className="text-center py-20 text-gray-400">로그인이 필요합니다.</div>;
