@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Send, Trash2, AlertTriangle } from "lucide-react";
+import { Send, Trash2, AlertTriangle, ThumbsUp, ThumbsDown, Info } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getTierColor } from "@/lib/utils";
 
@@ -196,6 +196,64 @@ function ChatContent() {
             <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-[#1a232c] z-10 shadow-sm">
               <span className="font-bold text-white flex items-center gap-2">대화방</span>
               <div className="flex items-center gap-2">
+                {(() => {
+                  // 현재 채팅방의 상태 및 권한 계산
+                  const currentChat = chats.find(c => c.id === activeChatId);
+                  const partnerId = currentChat?.user1_id === session.user.id ? currentChat?.user2_id : currentChat?.user1_id;
+                  
+                  // 내가 보낸 메시지 갯수와 상대가 보낸 메시지 갯수
+                  const myMsgs = messages.filter(m => m.sender_id === session.user.id).length;
+                  const partnerMsgs = messages.filter(m => m.sender_id === partnerId).length;
+                  const canRate = myMsgs > 0 && partnerMsgs > 0;
+
+                  return (
+                    <button 
+                      onClick={async () => {
+                        if (!canRate) {
+                          alert("글쓴이와 신청자 모두 1번 이상 메시지를 보내야 서로를 평가할 수 있습니다!");
+                          return;
+                        }
+                        
+                        // 이미 평가했는지 확인
+                        const { data: existingRating } = await supabase
+                          .from('user_ratings')
+                          .select('id')
+                          .eq('rater_id', session.user.id)
+                          .eq('rated_id', partnerId)
+                          .maybeSingle();
+                          
+                        if (existingRating) {
+                          alert("이미 이 유저를 평가하셨습니다.");
+                          return;
+                        }
+
+                        const isGood = confirm("이 유저와의 게임(대화)이 즐거우셨나요?\n[확인] 좋았어요 (+0.5도)\n[취소] 별로예요 (-0.5도)\n\n※ 평가는 한 번만 가능하며 취소할 수 없습니다.");
+                        const score = isGood ? 0.5 : -0.5;
+                        
+                        const { error } = await supabase.from('user_ratings').insert({
+                          rater_id: session.user.id,
+                          rated_id: partnerId,
+                          score: score
+                        });
+                        
+                        if (error) {
+                          alert("평가 중 에러가 발생했습니다: " + error.message);
+                        } else {
+                          alert("소중한 평가가 반영되었습니다!");
+                        }
+                      }}
+                      className={`text-xs font-bold flex items-center gap-1 transition-colors px-2 py-1 rounded border ${
+                        canRate 
+                          ? 'text-gray-300 hover:text-green-400 border-gray-700 hover:border-green-400/50' 
+                          : 'text-gray-600 border-gray-800 cursor-not-allowed'
+                      }`}
+                      title={canRate ? "매너 평가하기" : "쌍방 대화 시 활성화됩니다"}
+                    >
+                      <ThumbsUp size={14} /> 평가
+                    </button>
+                  );
+                })()}
+
                 <button 
                   onClick={async () => {
                     const reason = prompt("신고 사유를 입력해주세요.\n(최근 대화 내용 5개가 관리자에게 자동으로 함께 전송됩니다.)");
@@ -243,6 +301,10 @@ function ChatContent() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="bg-blue-900/30 border border-blue-800/50 rounded-lg p-3 text-center text-xs text-blue-300">
+                <Info size={14} className="inline mr-1 -mt-0.5" />
+                서로 한 번씩 이상 대화를 나누면 우측 상단의 <b>매너 평가</b> 버튼이 활성화됩니다.
+              </div>
               {messages.map(msg => {
                 const isMe = msg.sender_id === session.user.id;
                 const timeStr = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

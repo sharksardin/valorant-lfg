@@ -53,7 +53,8 @@ export default function PostList({ session }: { session: any }) {
           discord_name,
           avatar_url,
           riot_id,
-          valorant_tier
+          valorant_tier,
+          manner_score
         )
       `)
       .order("updated_at", { ascending: false, nullsFirst: false })
@@ -199,6 +200,15 @@ export default function PostList({ session }: { session: any }) {
                   </button>
                 </div>
                 <p className={`${getTierColor(post.profiles?.valorant_tier)} font-bold text-xs mt-1`}>{post.profiles?.valorant_tier || "Unranked"}</p>
+                <div className="mt-1.5 flex items-center justify-center gap-1 bg-gray-800/80 px-2 py-0.5 rounded-full border border-gray-700">
+                  <span className="text-[10px] text-gray-400">매너</span>
+                  <span className={`text-xs font-bold ${
+                    (post.profiles?.manner_score || 36.5) >= 37.0 ? 'text-red-400' : 
+                    (post.profiles?.manner_score || 36.5) <= 36.0 ? 'text-blue-400' : 'text-green-400'
+                  }`}>
+                    {(post.profiles?.manner_score || 36.5).toFixed(1)}°C
+                  </span>
+                </div>
               </div>
             </div>
 
