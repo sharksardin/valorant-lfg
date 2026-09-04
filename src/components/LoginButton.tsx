@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Settings } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
 
 export default function LoginButton() {
   const [session, setSession] = useState<any>(null);
@@ -39,14 +40,15 @@ export default function LoginButton() {
     const user = session.user;
     return (
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
+        <Link href="/settings" className="flex items-center gap-2 hover:opacity-80 transition-opacity" title="설정 (차단 관리)">
           {user.user_metadata.avatar_url ? (
             <img src={user.user_metadata.avatar_url} alt="avatar" className="w-8 h-8 rounded-full" />
           ) : (
             <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center"><User size={16}/></div>
           )}
-          <span className="text-white font-medium text-sm">{user.user_metadata.full_name}</span>
-        </div>
+          <span className="text-white font-medium text-sm hidden sm:inline">{user.user_metadata.full_name}</span>
+          <Settings size={16} className="text-gray-400 hover:text-white ml-1" />
+        </Link>
         <button 
           onClick={handleLogout}
           className="text-gray-400 hover:text-white transition-colors"
