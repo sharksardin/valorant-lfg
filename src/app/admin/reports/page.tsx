@@ -103,8 +103,10 @@ export default function AdminReportsPage() {
                       <div className="font-bold text-gray-300">{report.reporter?.riot_id || "알수없음"}</div>
                       <div className="text-xs text-gray-500">{report.reporter?.discord_name}</div>
                     </td>
-                    <td className="p-4 text-gray-300 max-w-xs truncate" title={report.reason}>
-                      {report.reason}
+                    <td className="p-4 align-top">
+                      <div className="text-gray-300 text-xs bg-gray-900 p-3 rounded border border-gray-800 max-h-40 overflow-y-auto whitespace-pre-wrap">
+                        {report.reason}
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
