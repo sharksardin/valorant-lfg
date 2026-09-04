@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     try {
       const accountRes = await fetch(`https://api.henrikdev.xyz/valorant/v1/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, { headers });
       if (!accountRes.ok) {
-        return NextResponse.json({ error: '계정을 찾을 수 없습니다. 닉네임과 태그를 다시 확인해주세요.' }, { status: 404 });
+        const errText = await accountRes.text();
+        return NextResponse.json({ error: `Henrik API 에러 (${accountRes.status}): ${errText}` }, { status: 404 });
       }
       const accountData = await accountRes.json();
       region = accountData.data?.region;
