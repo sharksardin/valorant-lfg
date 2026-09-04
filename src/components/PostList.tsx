@@ -70,11 +70,21 @@ export default function PostList({ session }: { session: any }) {
     }
   };
 
-  const handleChat = async (postAuthorId: string) => {
+  const requireLogin = async () => {
     if (!session) {
-      alert("로그인이 필요합니다.");
-      return;
+      alert("로그인이 필요합니다. 로그인 페이지로 이동합니다.");
+      await supabase.auth.signInWithOAuth({ 
+        provider: 'discord', 
+        options: { redirectTo: window.location.origin } 
+      });
+      return false;
     }
+    return true;
+  };
+
+  const handleChat = async (postAuthorId: string) => {
+    if (!(await requireLogin())) return;
+    
     if (session.user.id === postAuthorId) {
       alert("본인에게는 채팅을 보낼 수 없습니다.");
       return;
@@ -115,7 +125,7 @@ export default function PostList({ session }: { session: any }) {
   };
 
   const handleReport = async (reportedId: string) => {
-    if (!session) return alert("로그인이 필요합니다.");
+    if (!(await requireLogin())) return;
     const reason = prompt("신고 사유를 간단히 적어주세요 (욕설, 도배 등):");
     if (!reason) return;
 
@@ -128,7 +138,7 @@ export default function PostList({ session }: { session: any }) {
   };
 
   const handleBlock = async (blockedId: string) => {
-    if (!session) return alert("로그인이 필요합니다.");
+    if (!(await requireLogin())) return;
     if (!confirm("이 유저를 차단하시겠습니까? 앞으로 이 유저의 글이 보이지 않습니다.")) return;
 
     await supabase.from('blocks').insert({
