@@ -1,53 +1,140 @@
-import Link from "next/link";
+"use client";
 
-const articles = [
-  {
-    id: "1",
-    title: "발로란트 초보자를 위한 에임 향상 가이드: 크로스헤어 배치의 비밀",
-    date: "2026-09-04",
-    summary: "발로란트에서 가장 중요한 것은 반응 속도가 아니라 '크로스헤어 배치(헤드라인)'입니다. 초보자가 티어를 올리기 위해 반드시 알아야 할 에임 팁을 소개합니다."
-  },
-  {
-    id: "2",
-    title: "발로란트 9.0 패치노트 핵심 요약 및 현재 1티어 요원 분석",
-    date: "2026-09-03",
-    summary: "최근 진행된 대규모 패치 이후 메타가 어떻게 변했는지, 어떤 요원을 픽해야 경쟁전에서 유리한지 분석해 드립니다."
-  },
-  {
-    id: "3",
-    title: "경쟁전 연패 탈출을 위한 멘탈 관리법과 듀오의 중요성",
-    date: "2026-09-01",
-    summary: "팀 운이 없어서 연패 중이신가요? 멘탈을 관리하는 팁과 왜 나에게 딱 맞는 듀오를 구하는 것이 점수 상승에 필수적인지 알아봅니다."
-  },
-  {
-    id: "4",
-    title: "타격대 유저 필독: 맵별 1티어 타격대 추천 가이드",
-    date: "2026-09-05",
-    summary: "무조건 제트만 픽하고 계신가요? 어센트, 스플릿, 로터스 등 맵의 특성에 맞춰 제트, 레이즈, 네온을 스왑하는 방법을 알려드립니다."
-  },
-  {
-    id: "5",
-    title: "어센트(Ascent) 국밥 조합과 오멘 원웨이 연막 포인트",
-    date: "2026-09-05",
-    summary: "발로란트의 교과서라 불리는 어센트 맵에서 수비 승률을 200% 끌어올려 주는 오멘의 핵심 연막 위치를 정리했습니다."
-  }
-];
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ExternalLink, BookOpen, Newspaper } from "lucide-react";
 
 export default function NewsPage() {
+  const [officialNews, setOfficialNews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 애드센스 심사용 고정 가이드 글 (자체 콘텐츠)
+  const guides = [
+    {
+      id: "1",
+      title: "초보자를 위한 발로란트 에임 향상 가이드",
+      summary: "에임 트래킹과 플릭샷, 크로스헤어 배치 등 발로란트에서 살아남기 위한 가장 기초적이고 필수적인 에임 꿀팁을 정리했습니다.",
+      date: "2023. 10. 27."
+    },
+    {
+      id: "2",
+      title: "경쟁전 티어 올리는 포지션별 완벽 공략",
+      summary: "타격대, 척후대, 감시자, 전략가 등 각 요원 포지션이 팀 승리를 위해 해야 할 핵심 역할과 승률을 높이는 플레이 방식을 소개합니다.",
+      date: "2023. 10. 28."
+    },
+    {
+      id: "3",
+      title: "발로란트 맵별 승률 높은 추천 요원 조합",
+      summary: "어센트, 바인드, 스플릿 등 주요 맵에서 프로게이머들이 가장 많이 사용하는 1티어 요원 조합과 그 이유를 분석해 드립니다.",
+      date: "2023. 10. 29."
+    }
+  ];
+
+  useEffect(() => {
+    // 헨릭데브 API를 통해 한국 공식 발로란트 뉴스/패치노트를 실시간으로 가져옴
+    const fetchOfficialNews = async () => {
+      try {
+        const res = await fetch("https://api.henrikdev.xyz/valorant/v1/website/ko-kr");
+        const data = await res.json();
+        if (data.status === 200) {
+          // 최신 6개만 가져오기
+          setOfficialNews(data.data.slice(0, 6));
+        }
+      } catch (error) {
+        console.error("Failed to fetch official news:", error);
+      }
+      setLoading(false);
+    };
+
+    fetchOfficialNews();
+  }, []);
+
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold text-white mb-2">발로란트 뉴스 & 팁</h1>
-      <p className="text-gray-400 mb-8">발로란트 실력 향상을 위한 가이드와 최신 소식을 확인하세요.</p>
-      
-      <div className="space-y-4">
-        {articles.map((article) => (
-          <Link href={`/news/${article.id}`} key={article.id} className="block bg-[#1a232c] border border-gray-800 rounded-lg p-6 hover:border-[var(--valo-red)] transition-colors">
-            <h2 className="text-xl font-bold text-white mb-2">{article.title}</h2>
-            <p className="text-xs text-[var(--valo-red)] mb-3">{article.date}</p>
-            <p className="text-gray-300 text-sm leading-relaxed">{article.summary}</p>
-          </Link>
-        ))}
+    <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      <h1 className="text-3xl font-bold text-white mb-2">발로란트 정보</h1>
+      <p className="text-gray-400 mb-10">게임 꿀팁과 실시간 공식 패치노트를 확인하세요.</p>
+
+      {/* 1. 애드센스 승인용 자체 콘텐츠 (가이드) */}
+      <div className="mb-12">
+        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2 border-b border-gray-800 pb-3">
+          <BookOpen size={20} className="text-[var(--valo-red)]" /> 발로듀오 꿀팁 가이드
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {guides.map((guide) => (
+            <Link 
+              key={guide.id} 
+              href={`/news/${guide.id}`}
+              className="bg-[#1a232c] border border-gray-800 rounded-xl p-6 hover:border-[var(--valo-red)] transition-colors flex flex-col h-full group"
+            >
+              <h3 className="text-lg font-bold text-white mb-3 group-hover:text-[var(--valo-red)] transition-colors line-clamp-2">
+                {guide.title}
+              </h3>
+              <p className="text-sm text-gray-400 mb-6 line-clamp-3 flex-1 leading-relaxed">
+                {guide.summary}
+              </p>
+              <div className="text-xs text-gray-600 font-medium">
+                {guide.date}
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
+
+      {/* 2. 자동화된 실시간 공식 뉴스 (HenrikDev API 연동) */}
+      <div>
+        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2 border-b border-gray-800 pb-3">
+          <Newspaper size={20} className="text-[var(--valo-red)]" /> 실시간 공식 패치노트 & 뉴스
+        </h2>
+        
+        {loading ? (
+          <div className="flex justify-center items-center py-20 text-gray-500">
+            <div className="animate-pulse flex items-center gap-2">뉴스를 불러오는 중...</div>
+          </div>
+        ) : officialNews.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {officialNews.map((news, idx) => (
+              <a 
+                key={idx}
+                href={news.external_link || news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#1a232c] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-all group flex flex-col"
+              >
+                {news.banner_url && (
+                  <div className="h-48 overflow-hidden">
+                    <img 
+                      src={news.banner_url} 
+                      alt={news.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                )}
+                <div className="p-5 flex-1 flex flex-col">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-xs font-bold text-[var(--valo-red)] bg-red-950/30 px-2 py-1 rounded">
+                      {news.category}
+                    </span>
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      공식 홈페이지 <ExternalLink size={12} />
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white mb-2 group-hover:text-gray-300 transition-colors line-clamp-2">
+                    {news.title}
+                  </h3>
+                  <div className="mt-auto text-xs text-gray-600 pt-4">
+                    {new Date(news.date).toLocaleDateString()}
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-[#1a232c] border border-gray-800 rounded-xl p-10 text-center text-gray-500">
+            현재 뉴스를 불러올 수 없습니다.
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
