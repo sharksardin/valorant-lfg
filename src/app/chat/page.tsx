@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Send, Trash2, AlertTriangle, ThumbsUp, ThumbsDown, Info } from "lucide-react";
+import { Send, Trash2, AlertTriangle, ThumbsUp, ThumbsDown, Info, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getTierColor } from "@/lib/utils";
 
