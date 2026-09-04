@@ -35,21 +35,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '닉네임과 태그를 모두 입력해주세요.' }, { status: 400 });
     }
 
-    // 3. 공식 Riot API를 통해 계정 존재 여부 확인
-    const riotToken = process.env.RIOT_API_KEY;
-    if (!riotToken) {
-      return NextResponse.json({ error: 'RIOT_API_KEY가 설정되지 않았습니다.' }, { status: 500 });
+    // 3. Henrik API를 통해 계정 존재 여부 및 실제 티어(랭크) 확인
+    const henrikKey = process.env.HENRIK_API_KEY;
+    if (!henrikKey) {
+      return NextResponse.json({ error: 'HENRIK_API_KEY가 설정되지 않았습니다.' }, { status: 500 });
     }
 
-    const res = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, {
-      headers: { 'X-Riot-Token': riotToken }
-    });
+    const headers = { 'Authorization': henrikKey };
+
+    // 3-1. 계정 및 리전 정보 가져오기
+    const accountRes = await fetch(`https://api.henrikdev.xyz/valorant/v1/account/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, { headers });
     
-    if (!res.ok) {
-      return NextResponse.json({ error: '라이엇 계정을 찾을 수 없습니다. 닉네임과 태그를 다시 확인해주세요.' }, { status: 404 });
+    if (!accountRes.ok) {
+      return NextResponse.json({ error: '계정을 찾을 수 없습니다. 닉네임과 태그를 확인해주세요.' }, { status: 404 });
     }
+    const accountData = await accountRes.json();
+    const region = accountData.data.region;
 
-    const finalTier = tier || 'Unranked';
+    // 3-2. MMR (랭크) 정보 가져오기
+    let finalTier = 'Unranked';
+    if (region) {
+      const mmrRes = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr/${region}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, { headers });
+      if (mmrRes.ok) {
+        const mmrData = await mmrRes.json();
+        if (mmrData.data && mmrData.data.currenttierpatched) {
+          finalTier = mmrData.data.currenttierpatched;
+        }
+      }
+    }
 
     // 4. Supabase profiles 테이블에 저장 (관리자 권한으로 강제 쓰기)
     const { error: dbError } = await supabaseAdmin

@@ -38,8 +38,8 @@ export default function RiotLinker({ session }: { session: any }) {
     }
   };
 
-  const handleLink = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLink = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!session) return;
 
     setLoading(true);
@@ -92,23 +92,15 @@ export default function RiotLinker({ session }: { session: any }) {
             </div>
           </div>
           
-          <form onSubmit={handleLink} className="flex items-center gap-2">
-            <select 
-              value={selectedTier} 
-              onChange={e => setSelectedTier(e.target.value)}
-              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white outline-none focus:border-[var(--valo-red)]"
-            >
-              {VALORANT_TIERS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+          <div className="flex items-center gap-2">
             <button 
-              type="submit" 
+              onClick={handleLink}
               disabled={loading}
-              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="bg-gray-800 text-gray-300 py-2 px-4 rounded font-bold hover:bg-gray-700 hover:text-white transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              {loading ? "갱신 중..." : "티어 갱신"}
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> {loading ? "가져오는 중..." : "전적/랭크 갱신"}
             </button>
-          </form>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleLink} className="space-y-4">

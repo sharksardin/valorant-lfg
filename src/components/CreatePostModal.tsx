@@ -18,6 +18,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
   const [gameMode, setGameMode] = useState("경쟁전");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && session) {
@@ -36,6 +37,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
           setSelectedTags(data.playstyles || []);
           setGameMode(data.game_mode || "경쟁전");
           setIsEditing(true);
+          setLastUpdatedAt(data.updated_at || data.created_at);
         } else {
           setSelectedRoles([]);
           setMic(true);
@@ -44,6 +46,7 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
           setSelectedTags([]);
           setGameMode("경쟁전");
           setIsEditing(false);
+          setLastUpdatedAt(null);
         }
       };
       fetchMyPost();
@@ -79,6 +82,15 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
       alert("선호 역할군을 최소 1개 이상 선택해주세요.");
       setLoading(false);
       return;
+    }
+
+    if (isEditing && lastUpdatedAt) {
+      const timeAgo = Math.floor((new Date().getTime() - new Date(lastUpdatedAt).getTime()) / 60000);
+      if (timeAgo < 15) {
+        alert(`글 수정 및 끌어올리기는 15분마다 가능합니다. (${15 - timeAgo}분 남음)`);
+        setLoading(false);
+        return;
+      }
     }
 
     // 유저당 1개의 글만 유지 (upsert)
