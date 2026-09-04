@@ -363,7 +363,7 @@ export default function PostList({ session }: { session: any }) {
 
           </div>
         );
-      })}
+      }))}
     </div>
   );
 }
