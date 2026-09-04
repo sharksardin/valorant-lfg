@@ -71,7 +71,7 @@ export default function PostList({ session }: { session: any }) {
       query = query.eq('mic', filterMic);
     }
     if (filterRole !== "전체") {
-      query = query.contains('agents', [filterRole]);
+      query = query.overlaps('agents', [filterRole, "올라운더"]);
     }
 
     query = query.order("updated_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
