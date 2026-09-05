@@ -108,10 +108,11 @@ function ChatContent() {
       .from('messages')
       .select('*')
       .eq('chat_id', chatId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .limit(100);
     
     if (data) {
-      setMessages(data);
+      setMessages(data.reverse());
       
       // 이 방에 들어왔으므로, 안 읽은 메시지들을 모두 '읽음(is_read: true)'으로 업데이트
       const unreadIds = data.filter(m => !m.is_read && m.sender_id !== session.user.id).map(m => m.id);
