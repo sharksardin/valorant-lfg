@@ -45,8 +45,12 @@ export async function POST(request: Request) {
       const riotRes = await fetch(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`, {
         headers: { 'X-Riot-Token': riotToken }
       });
-      if (!riotRes.ok) {
+      if (riotRes.status === 401 || riotRes.status === 403) {
+        return NextResponse.json({ error: 'RIOT_API_KEY가 만료되었습니다. 라이엇 개발자 포털에서 키를 재발급받아 Vercel에 업데이트해주세요.' }, { status: 401 });
+      } else if (riotRes.status === 404) {
         return NextResponse.json({ error: '라이엇 공식 서버에 존재하지 않는 계정입니다. 닉네임과 태그를 확인해주세요.' }, { status: 404 });
+      } else if (!riotRes.ok) {
+        return NextResponse.json({ error: `라이엇 API 에러 (${riotRes.status})` }, { status: 500 });
       }
     }
 
