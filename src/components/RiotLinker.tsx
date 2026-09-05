@@ -78,9 +78,14 @@ export default function RiotLinker({ session }: { session: any }) {
 
   return (
     <div className="bg-[#1a232c] border border-gray-800 rounded-lg p-6 mb-8 shadow-sm">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        발로란트 계정 연동 및 티어 설정
-      </h2>
+      <div className="mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          발로란트 계정 연동 및 티어 설정
+        </h2>
+        <p className="text-sm text-gray-400 mt-1">
+          💡 연동 후 전적이 갱신되지 않거나 Unranked로 뜬다면, <b>데스매치 1판</b> 플레이 후 다시 갱신해주세요!
+        </p>
+      </div>
       
       {profile ? (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-800">

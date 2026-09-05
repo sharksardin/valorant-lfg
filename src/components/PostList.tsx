@@ -82,7 +82,10 @@ export default function PostList({ session }: { session: any }) {
       query = query.overlaps('agents', [filterRole, "올라운더"]);
     }
 
-    query = query.order("updated_at", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
+    query = query
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     const { data, error } = await query;
 
