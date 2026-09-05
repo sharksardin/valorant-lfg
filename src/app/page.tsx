@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import RiotLinker from "@/components/RiotLinker";
 import CreatePostModal from "@/components/CreatePostModal";
@@ -43,23 +43,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Filters (MVP에서는 디자인만 유지) */}
-      <div className="bg-[#1a232c] p-4 rounded-lg mb-8 flex gap-4 border border-gray-800">
-        <select className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white outline-none focus:border-[var(--valo-red)]">
-          <option>모든 티어</option>
-          <option>Radiant ~ Ascendant</option>
-          <option>Diamond ~ Platinum</option>
-          <option>Gold ~ Iron</option>
-        </select>
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-2.5 text-gray-500" size={18} />
-          <input 
-            type="text" 
-            placeholder="챔피언, 닉네임, 메모 검색..." 
-            className="w-full bg-gray-900 border border-gray-700 rounded pl-10 pr-4 py-2 text-white outline-none focus:border-[var(--valo-red)]"
-          />
-        </div>
-      </div>
 
       <PostList session={session} />
 
