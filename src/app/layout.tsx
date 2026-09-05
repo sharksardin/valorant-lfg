@@ -9,8 +9,16 @@ import Footer from "@/components/Footer";
 import NavChatBadge from "@/components/NavChatBadge";
 
 export const metadata: Metadata = {
-  title: "Valorant Duo Finder",
-  description: "Find your perfect Valorant duo and climb the ranks together.",
+  title: "VALODUO - 발로란트 듀오/파티 찾기",
+  description: "나와 딱 맞는 발로란트 듀오와 파티원을 실시간으로 찾아보세요. 전적 연동, 매너 온도 기능 지원.",
+  keywords: ["발로란트", "발로란트 듀오", "발로란트 파티", "발로란트 전적", "valorant", "lfg"],
+  openGraph: {
+    title: "VALODUO - 발로란트 듀오/파티 찾기",
+    description: "나와 딱 맞는 발로란트 듀오와 파티원을 실시간으로 찾아보세요.",
+    siteName: "VALODUO",
+    locale: "ko_KR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

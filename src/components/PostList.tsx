@@ -283,8 +283,11 @@ export default function PostList({ session }: { session: any }) {
         const riotIdStr = post.profiles?.riot_id || "Unknown#0000";
         const [riotName, riotTag] = riotIdStr.split("#");
         const isMe = session?.user?.id === post.author_id;
-        const timeAgo = Math.floor((new Date().getTime() - new Date(post.updated_at || post.created_at).getTime()) / 60000);
-
+        const diffMins = Math.floor((new Date().getTime() - new Date(post.updated_at || post.created_at).getTime()) / 60000);
+        let timeString = "방금 전";
+        if (diffMins >= 1440) timeString = `${Math.floor(diffMins / 1440)}일 전`;
+        else if (diffMins >= 60) timeString = `${Math.floor(diffMins / 60)}시간 전`;
+        else if (diffMins >= 1) timeString = `${diffMins}분 전`;
         return (
           <div key={post.id} className="bg-[#1a232c] border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-colors flex flex-col md:flex-row gap-6 items-center">
             
@@ -350,7 +353,7 @@ export default function PostList({ session }: { session: any }) {
               </div>
               <p className="text-gray-300 text-sm whitespace-pre-wrap">{post.memo}</p>
               <div className="text-xs text-gray-600 mt-3 flex items-center gap-2">
-                <span>{timeAgo < 1 ? "방금 전" : `${timeAgo}분 전`}</span>
+                <span>{timeString}</span>
               </div>
             </div>
 
@@ -360,21 +363,21 @@ export default function PostList({ session }: { session: any }) {
                 <>
                   <button 
                     onClick={async () => {
-                      if (timeAgo < 15) {
-                        alert(`끌어올리기는 15분마다 가능합니다. (${15 - timeAgo}분 남음)`);
+                      if (diffMins < 15) {
+                        alert(`끌어올리기는 15분마다 가능합니다. (${15 - diffMins}분 남음)`);
                         return;
                       }
                       await supabase.from("posts").update({ updated_at: new Date().toISOString() }).eq("id", post.id);
                       alert("글이 상단으로 끌어올려졌습니다!");
                     }}
                     className={`flex-1 md:w-full py-2 px-4 rounded text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
-                      timeAgo >= 15 
+                      diffMins >= 15 
                         ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg' 
                         : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                     }`}
-                    title={timeAgo >= 15 ? "내 글을 맨 위로 올리기" : "15분마다 가능합니다"}
+                    title={diffMins >= 15 ? "내 글을 맨 위로 올리기" : "15분마다 가능합니다"}
                   >
-                    <RefreshCw size={16} className={timeAgo >= 15 ? "" : "opacity-50"} /> 끌어올리기
+                    <RefreshCw size={16} className={diffMins >= 15 ? "" : "opacity-50"} /> 끌어올리기
                   </button>
                   <button 
                     onClick={async () => {
