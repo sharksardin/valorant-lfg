@@ -231,9 +231,15 @@ export default function CreatePostModal({ isOpen, onClose, session }: { isOpen: 
           </div>
 
           <div>
-            <label className="block text-gray-400 text-sm mb-1">상세 내용 (각오, 원하는 티어 등)</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-gray-400 text-sm">상세 내용 (각오, 원하는 티어 등)</label>
+              <span className={`text-xs ${memo.length >= 200 ? 'text-red-400 font-bold' : 'text-gray-500'}`}>
+                {memo.length} / 200
+              </span>
+            </div>
             <textarea 
               required placeholder="빡겜하실 분 구합니다..." rows={3}
+              maxLength={200}
               className="w-full bg-gray-900 border border-gray-700 rounded px-4 py-2 text-white outline-none focus:border-[var(--valo-red)] resize-none"
               value={memo} onChange={e => setMemo(e.target.value)}
             />
